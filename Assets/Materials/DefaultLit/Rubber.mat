@@ -7,12 +7,12 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Brass
-  m_Shader: {fileID: 4800000, guid: c40778f7351d4ed42adec305cd06d12c, type: 3}
-  m_ValidKeywords: []
-  m_InvalidKeywords:
+  m_Name: Rubber
+  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
+  m_ValidKeywords:
   - _METALLICGLOSSMAP
   - _NORMALMAP
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -23,7 +23,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: fd4d603ce9a47814982519dc8d243c7d, type: 3}
+        m_Texture: {fileID: 2800000, guid: 3052d9ba5e5e7a046a63dea1cf9e1c7b, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -43,11 +43,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 1c53a60abf972544fa83f1d8a93eb809, type: 3}
+        m_Texture: {fileID: 2800000, guid: 2988014b03de2e84e9e2c5aa3ab3c14e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
-        m_Texture: {fileID: 2800000, guid: 3114b7de2d016284da656142e2c2c915, type: 3}
+        m_Texture: {fileID: 2800000, guid: 389e20ae698e69648bbe238a8c5087cb, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
