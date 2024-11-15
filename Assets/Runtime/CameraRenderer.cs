@@ -42,15 +42,15 @@ public class CameraRenderer
         new RenderTargetIdentifier(GbufferNameIds[2]),
         new RenderTargetIdentifier(GbufferNameIds[3])
     };
-    
-    
+
+    static int DepthId = Shader.PropertyToID("Depth");
     
     // 创建纹理
     
 
     //==============================================
     
-    public void Render (ref ScriptableRenderContext context, ref Camera camera, ref RenderTexture gdepth, ref RenderTexture[] gbuffers, ref RenderTargetIdentifier[] gbufferID) 
+    public void Render (ref ScriptableRenderContext context, ref Camera camera) 
     {
         //这两个东西，其他很多函数都要调用，与其写成每个函数都要接受这两个输入，不如直接把他们做成成员变量
         this.context = context;
@@ -60,30 +60,23 @@ public class CameraRenderer
         }
         Setup();
         
-        buffer.SetRenderTarget(gbufferID, gdepth);
-        CameraClearFlags flags = camera.clearFlags;
-        buffer.ClearRenderTarget(
-            flags <= CameraClearFlags.Depth,
-            flags == CameraClearFlags.Color,
-            flags == CameraClearFlags.Color ?
-                camera.backgroundColor.linear : Color.clear
-        );
-        ExecuteBuffer();
+        RenderTextureDescriptor gbufferdesc = new RenderTextureDescriptor(Screen.width, Screen.height);
+        gbufferdesc.depthBufferBits = 0;//确保没有深度buffer
+        gbufferdesc.stencilFormat = GraphicsFormat.None;//模板缓冲区不指定格式
+        gbufferdesc.graphicsFormat = QualitySettings.activeColorSpace == ColorSpace.Linear
+            ? GraphicsFormat.R8G8B8A8_SRGB
+            : GraphicsFormat.R8G8B8A8_UNorm;//根据颜色空间来决定diffusebuffer的RT格式
+        buffer.GetTemporaryRT(GbufferNameIds[0], gbufferdesc);//diffuse
+        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+        buffer.GetTemporaryRT(GbufferNameIds[1], gbufferdesc);//normal+roughness
+        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+        buffer.GetTemporaryRT(GbufferNameIds[2], gbufferdesc);//metal+AO+？+？
+        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+        buffer.GetTemporaryRT(GbufferNameIds[3], gbufferdesc);//暂时不懂干啥了
+        buffer.GetTemporaryRT(DepthId, Screen.width, Screen.height, 32, FilterMode.Point, RenderTextureFormat.Depth, RenderTextureReadWrite.Linear);
         
-        // RenderTextureDescriptor gbufferdesc = new RenderTextureDescriptor(Screen.width, Screen.height);
-        // gbufferdesc.depthBufferBits = 0;//确保没有深度buffer
-        // gbufferdesc.stencilFormat = GraphicsFormat.None;//模板缓冲区不指定格式
-        // gbufferdesc.graphicsFormat = QualitySettings.activeColorSpace == ColorSpace.Linear
-        //     ? GraphicsFormat.R8G8B8A8_SRGB
-        //     : GraphicsFormat.R8G8B8A8_UNorm;//根据颜色空间来决定diffusebuffer的RT格式
-        // buffer.GetTemporaryRT(GbufferNameIds[0], gbufferdesc);//diffuse
-        // gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        // buffer.GetTemporaryRT(GbufferNameIds[1], gbufferdesc);//normal+roughness
-        // gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        // buffer.GetTemporaryRT(GbufferNameIds[2], gbufferdesc);//metal+AO+？+？
-        // gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        // buffer.GetTemporaryRT(GbufferNameIds[3], gbufferdesc);//暂时不懂干啥了
-        // //buffer.SetRenderTarget(GbufferIds, 0);
+        buffer.SetRenderTarget(GbufferIds, new RenderTargetIdentifier(DepthId));
+        ExecuteBuffer();
         
         DrawGBuffer();
         buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
@@ -109,6 +102,10 @@ public class CameraRenderer
 
     private void Submit()
     {
+        buffer.ReleaseTemporaryRT(GbufferNameIds[0]);
+        buffer.ReleaseTemporaryRT(GbufferNameIds[1]);
+        buffer.ReleaseTemporaryRT(GbufferNameIds[2]);
+        buffer.ReleaseTemporaryRT(GbufferNameIds[3]);
         buffer.EndSample(SampleName);
         //Debug.Log("EndSample名字是："+bufferName + "而实际buffername是：" + buffer.name);
         ExecuteBuffer();
