@@ -59,34 +59,31 @@ public class CameraRenderer
             return;
         }
         Setup();
-        
-        RenderTextureDescriptor gbufferdesc = new RenderTextureDescriptor(Screen.width, Screen.height);
-        gbufferdesc.depthBufferBits = 0;//确保没有深度buffer
-        gbufferdesc.stencilFormat = GraphicsFormat.None;//模板缓冲区不指定格式
-        gbufferdesc.graphicsFormat = QualitySettings.activeColorSpace == ColorSpace.Linear
-            ? GraphicsFormat.R8G8B8A8_SRGB
-            : GraphicsFormat.R8G8B8A8_UNorm;//根据颜色空间来决定diffusebuffer的RT格式
-        buffer.GetTemporaryRT(GbufferNameIds[0], gbufferdesc);//diffuse
-        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        buffer.GetTemporaryRT(GbufferNameIds[1], gbufferdesc);//normal+roughness
-        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        buffer.GetTemporaryRT(GbufferNameIds[2], gbufferdesc);//metal+AO+？+？
-        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        buffer.GetTemporaryRT(GbufferNameIds[3], gbufferdesc);//暂时不懂干啥了
-        buffer.GetTemporaryRT(DepthId, Screen.width, Screen.height, 32, FilterMode.Point, RenderTextureFormat.Depth, RenderTextureReadWrite.Linear);
-        
-        buffer.SetRenderTarget(GbufferIds, new RenderTargetIdentifier(DepthId));
-        ExecuteBuffer();
-        
         DrawGBuffer();
-        buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
-        ExecuteBuffer();
+        
         DrawSkyBox();
         Submit();
     }
 
     private void DrawGBuffer()
     {
+        RenderTextureDescriptor gbufferdesc = new RenderTextureDescriptor(camera.scaledPixelWidth, camera.scaledPixelHeight);
+        gbufferdesc.depthBufferBits = 0;//确保没有深度buffer
+        gbufferdesc.stencilFormat = GraphicsFormat.None;//模板缓冲区不指定格式
+        gbufferdesc.graphicsFormat = QualitySettings.activeColorSpace == ColorSpace.Linear
+            ? GraphicsFormat.R8G8B8A8_SRGB
+            : GraphicsFormat.R8G8B8A8_UNorm;//根据颜色空间来决定diffusebuffer的RT格式
+        buffer.GetTemporaryRT(GbufferNameIds[0], gbufferdesc);//Albedo
+        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+        buffer.GetTemporaryRT(GbufferNameIds[1], gbufferdesc);//normal+roughness
+        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+        buffer.GetTemporaryRT(GbufferNameIds[2], gbufferdesc);//metal+AO+？+？
+        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+        buffer.GetTemporaryRT(GbufferNameIds[3], gbufferdesc);//暂时不懂干啥了
+        buffer.GetTemporaryRT(DepthId, camera.scaledPixelWidth, camera.scaledPixelHeight, 32, FilterMode.Point, RenderTextureFormat.Depth, RenderTextureReadWrite.Linear);
+        buffer.SetRenderTarget(GbufferIds, new RenderTargetIdentifier(DepthId));
+        ExecuteBuffer();
+        
         var sortingSettings = new SortingSettings(camera){
             //调整绘制顺序,按不透明顺序（从近往远）
             criteria = SortingCriteria.CommonOpaque
@@ -98,6 +95,10 @@ public class CameraRenderer
         context.DrawRenderers(
             cullingResults, ref drawingSettings, ref filteringSettings
         );
+        
+        //绘制完后切换rendertarget
+        buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+        ExecuteBuffer();
     }
 
     private void Submit()

@@ -1,0 +1,12 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain CSMAIN=CSMain THISIS0 A=13
+#pragma kernel CSMain1 CSMAIN=CSMain1 THISIS1 A=20
+#pragma kernel CSMain2 CSMAIN=CSMain2 THISIS2 A=22
+
+RWTexture2D<float4> Result;
+
+[numthreads(8,8,1)]
+void CSMAIN (uint3 id : SV_DispatchThreadID)
+{
+    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0) * A;
+}
