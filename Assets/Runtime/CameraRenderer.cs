@@ -43,7 +43,7 @@ public class CameraRenderer
         new RenderTargetIdentifier(GbufferNameIds[3])
     };
 
-    static int DepthId = Shader.PropertyToID("Depth");
+    static int DepthId = Shader.PropertyToID("GbufferDepth");
     
     // 创建纹理
     
@@ -60,13 +60,27 @@ public class CameraRenderer
         }
         Setup();
         DrawGBuffer();
+        DeferredLit();
         
         DrawSkyBox();
         Submit();
     }
 
+    private void DeferredLit()
+    {
+        // CommandBuffer cmd = new CommandBuffer();
+        // cmd.name = "lightpass";
+        // cmd.Blit(GbufferNameIds[0], BuiltinRenderTextureType.CameraTarget);
+        // context.ExecuteCommandBuffer(cmd);
+        // buffer.SetGlobalTexture("_CameraDepthTexture", BuiltinRenderTextureType.Depth);
+        // ExecuteBuffer();
+    }
+
     private void DrawGBuffer()
     {
+        // ProfilingSampler profilingSampler = new ProfilingSampler("GGGG");
+        // buffer.name = "GGG";
+        // profilingSampler.Begin(buffer);
         RenderTextureDescriptor gbufferdesc = new RenderTextureDescriptor(camera.scaledPixelWidth, camera.scaledPixelHeight);
         gbufferdesc.depthBufferBits = 0;//确保没有深度buffer
         gbufferdesc.stencilFormat = GraphicsFormat.None;//模板缓冲区不指定格式
@@ -98,7 +112,16 @@ public class CameraRenderer
         
         //绘制完后切换rendertarget
         buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+        
+        //设为全局texture（绘制前设置也能有效，但是保险起见还是绘制后设置。
+        for(int i=0; i<4; i++) 
+            buffer.SetGlobalTexture("_GT"+i, GbufferNameIds[i]);
+        buffer.SetGlobalTexture(DepthId, DepthId);
+        
         ExecuteBuffer();
+        // profilingSampler.End(buffer);
+        // buffer.name = "GGGxxx";
+        // ExecuteBuffer();
     }
 
     private void Submit()
@@ -107,6 +130,7 @@ public class CameraRenderer
         buffer.ReleaseTemporaryRT(GbufferNameIds[1]);
         buffer.ReleaseTemporaryRT(GbufferNameIds[2]);
         buffer.ReleaseTemporaryRT(GbufferNameIds[3]);
+        buffer.ReleaseTemporaryRT(DepthId);
         buffer.EndSample(SampleName);
         //Debug.Log("EndSample名字是："+bufferName + "而实际buffername是：" + buffer.name);
         ExecuteBuffer();

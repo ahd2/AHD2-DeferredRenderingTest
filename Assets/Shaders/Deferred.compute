@@ -4,6 +4,7 @@
 #pragma kernel CSMain2 CSMAIN=CSMain2 THISIS2 A=22
 
 RWTexture2D<float4> Result;
+RWTexture2D<float4> _GT0;
 
 [numthreads(8,8,1)]
 void CSMAIN (uint3 id : SV_DispatchThreadID)
