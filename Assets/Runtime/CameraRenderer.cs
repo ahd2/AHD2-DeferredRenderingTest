@@ -4,6 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using ProfilingScope = Unity.VisualScripting.ProfilingScope;
 
 public class CameraRenderer
 {
@@ -19,6 +20,8 @@ public class CameraRenderer
 #else
     string SampleName => bufferName;
 #endif
+    
+    ProfilingSampler profilingSampler = new ProfilingSampler("profilingSampler");
 	
     CommandBuffer buffer = new CommandBuffer {
         name = bufferName
@@ -44,6 +47,9 @@ public class CameraRenderer
     };
 
     static int DepthId = Shader.PropertyToID("GbufferDepth");
+
+    const string GbufferPass = "GbufferPass";
+    const string DeferredPass = "DeferredPass";
     
     // 创建纹理
     
@@ -68,60 +74,68 @@ public class CameraRenderer
 
     private void DeferredLit()
     {
-        // CommandBuffer cmd = new CommandBuffer();
-        // cmd.name = "lightpass";
-        // cmd.Blit(GbufferNameIds[0], BuiltinRenderTextureType.CameraTarget);
-        // context.ExecuteCommandBuffer(cmd);
-        // buffer.SetGlobalTexture("_CameraDepthTexture", BuiltinRenderTextureType.Depth);
-        // ExecuteBuffer();
+        buffer.name = DeferredPass;
+        using (new UnityEngine.Rendering.ProfilingScope(buffer, profilingSampler))
+        {
+            //输入逻辑
+        }
+        buffer.name = bufferName;
+        ExecuteBuffer();
     }
 
     private void DrawGBuffer()
     {
-        // ProfilingSampler profilingSampler = new ProfilingSampler("GGGG");
-        // buffer.name = "GGG";
-        // profilingSampler.Begin(buffer);
-        RenderTextureDescriptor gbufferdesc = new RenderTextureDescriptor(camera.scaledPixelWidth, camera.scaledPixelHeight);
-        gbufferdesc.depthBufferBits = 0;//确保没有深度buffer
-        gbufferdesc.stencilFormat = GraphicsFormat.None;//模板缓冲区不指定格式
-        gbufferdesc.graphicsFormat = QualitySettings.activeColorSpace == ColorSpace.Linear
-            ? GraphicsFormat.R8G8B8A8_SRGB
-            : GraphicsFormat.R8G8B8A8_UNorm;//根据颜色空间来决定diffusebuffer的RT格式
-        buffer.GetTemporaryRT(GbufferNameIds[0], gbufferdesc);//Albedo
-        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        buffer.GetTemporaryRT(GbufferNameIds[1], gbufferdesc);//normal+roughness
-        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        buffer.GetTemporaryRT(GbufferNameIds[2], gbufferdesc);//metal+AO+？+？
-        gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-        buffer.GetTemporaryRT(GbufferNameIds[3], gbufferdesc);//暂时不懂干啥了
-        buffer.GetTemporaryRT(DepthId, camera.scaledPixelWidth, camera.scaledPixelHeight, 32, FilterMode.Point, RenderTextureFormat.Depth, RenderTextureReadWrite.Linear);
-        buffer.SetRenderTarget(GbufferIds, new RenderTargetIdentifier(DepthId));
+        buffer.name = GbufferPass;
+        using (new UnityEngine.Rendering.ProfilingScope(buffer, profilingSampler))
+        {
+            RenderTextureDescriptor gbufferdesc =
+                new RenderTextureDescriptor(camera.scaledPixelWidth, camera.scaledPixelHeight);
+            gbufferdesc.depthBufferBits = 0; //确保没有深度buffer
+            gbufferdesc.stencilFormat = GraphicsFormat.None; //模板缓冲区不指定格式
+            gbufferdesc.graphicsFormat = QualitySettings.activeColorSpace == ColorSpace.Linear
+                ? GraphicsFormat.R8G8B8A8_SRGB
+                : GraphicsFormat.R8G8B8A8_UNorm; //根据颜色空间来决定diffusebuffer的RT格式
+            buffer.GetTemporaryRT(GbufferNameIds[0], gbufferdesc); //Albedo
+            gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+            buffer.GetTemporaryRT(GbufferNameIds[1], gbufferdesc); //normal+roughness
+            gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+            buffer.GetTemporaryRT(GbufferNameIds[2], gbufferdesc); //metal+AO+？+？
+            gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+            buffer.GetTemporaryRT(GbufferNameIds[3], gbufferdesc); //暂时不懂干啥了
+            buffer.GetTemporaryRT(DepthId, camera.scaledPixelWidth, camera.scaledPixelHeight, 32, FilterMode.Point,
+                RenderTextureFormat.Depth, RenderTextureReadWrite.Linear);
+            //buffer.SetRenderTarget(GbufferIds, new RenderTargetIdentifier(DepthId));
+            buffer.SetRenderTarget(GbufferIds, BuiltinRenderTextureType.CameraTarget);
+            ExecuteBuffer();
+
+            var sortingSettings = new SortingSettings(camera)
+            {
+                //调整绘制顺序,按不透明顺序（从近往远）
+                criteria = SortingCriteria.CommonOpaque
+            };
+            var drawingSettings = new DrawingSettings(GbufferShaderTagId, sortingSettings);
+            drawingSettings.SetShaderPassName(1, GbufferShaderTagId); //绘制光照着色器
+            var filteringSettings = new FilteringSettings(RenderQueueRange.opaque); //渲染不透明队列的物体。
+            //核心绘制函数
+            context.DrawRenderers(
+                cullingResults, ref drawingSettings, ref filteringSettings
+            );
+
+            //绘制完后切换rendertarget
+            buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+
+            //设为全局texture（绘制前设置也能有效，但是保险起见还是绘制后设置。
+            for (int i = 0; i < 4; i++)
+                buffer.SetGlobalTexture("_GT" + i, GbufferNameIds[i]);
+            buffer.SetGlobalTexture(DepthId, DepthId);
+        }
+        buffer.name = bufferName;
         ExecuteBuffer();
+    }
+
+    private void BeginSampler(int gbufferPassId)
+    {
         
-        var sortingSettings = new SortingSettings(camera){
-            //调整绘制顺序,按不透明顺序（从近往远）
-            criteria = SortingCriteria.CommonOpaque
-        };
-        var drawingSettings = new DrawingSettings(GbufferShaderTagId, sortingSettings);
-        drawingSettings.SetShaderPassName(1, GbufferShaderTagId);//绘制光照着色器
-        var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);//渲染不透明队列的物体。
-        //核心绘制函数
-        context.DrawRenderers(
-            cullingResults, ref drawingSettings, ref filteringSettings
-        );
-        
-        //绘制完后切换rendertarget
-        buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
-        
-        //设为全局texture（绘制前设置也能有效，但是保险起见还是绘制后设置。
-        for(int i=0; i<4; i++) 
-            buffer.SetGlobalTexture("_GT"+i, GbufferNameIds[i]);
-        buffer.SetGlobalTexture(DepthId, DepthId);
-        
-        ExecuteBuffer();
-        // profilingSampler.End(buffer);
-        // buffer.name = "GGGxxx";
-        // ExecuteBuffer();
     }
 
     private void Submit()
@@ -146,6 +160,8 @@ public class CameraRenderer
     {
         //更新相机属性,顺便传framebuffer地址，方便ClearRenderTarget清理屏幕。
         context.SetupCameraProperties(camera);
+        //设置自己维护的RenderTarget
+        
         CameraClearFlags flags = camera.clearFlags;
         buffer.ClearRenderTarget(
             flags <= CameraClearFlags.Depth,
@@ -170,4 +186,6 @@ public class CameraRenderer
         }
         return false;
     }
+    
+    
 }
