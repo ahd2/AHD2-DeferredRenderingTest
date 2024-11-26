@@ -69,6 +69,11 @@ public partial class CameraRenderer
     
 
     //==============================================
+
+    public CameraRenderer()
+    {
+        Debug.Log("renderer被构造了");
+    }
     
     public void Render (ref ScriptableRenderContext context, ref Camera camera) 
     {

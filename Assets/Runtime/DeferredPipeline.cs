@@ -5,16 +5,23 @@ namespace DefferedPipeline
 {
     public class DeferredPipeline : RenderPipeline
     {
-        public DeferredPipeline(bool useSRPBatcher)
+        private DeferredPipelineAsset _pipelineAsset;
+        public DeferredPipeline(DeferredPipelineAsset asset)
         {
-            GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;
+            _pipelineAsset = asset;
+            GraphicsSettings.useScriptableRenderPipelineBatching = asset.UseSRPBatcher;
         }
-        CameraRenderer renderer = new CameraRenderer();//用renderer来管理一整个渲染管线
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
             for (int i = 0; i < cameras.Length; i++) {
-                renderer.Render(ref context, ref cameras[i]);
+                _pipelineAsset.renderer.Render(ref context, ref cameras[i]);
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            Debug.Log("管线被销毁了");
+            base.Dispose(disposing);
         }
     }
 }
