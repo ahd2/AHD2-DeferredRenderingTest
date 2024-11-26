@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 using ProfilingScope = Unity.VisualScripting.ProfilingScope;
 
@@ -81,24 +82,48 @@ public partial class CameraRenderer
         this.context = context;
         this.camera = camera;
         //为不同相机创建不同名字的buffer（在framedebugger里面可以看到。）
-        PrepareBuffer();
         
+        Profiler.BeginSample("PrepareBuffer");
+        PrepareBuffer();
+        Profiler.EndSample();
+        
+        Profiler.BeginSample("PrepareDescriptor");
         this.cameraRenderTextureDescriptor =
             new RenderTextureDescriptor(camera.scaledPixelWidth, camera.scaledPixelHeight);
         cameraRenderTextureDescriptor.graphicsFormat = QualitySettings.activeColorSpace == ColorSpace.Linear
             ? GraphicsFormat.R8G8B8A8_SRGB
             : GraphicsFormat.R8G8B8A8_UNorm;
+        Profiler.EndSample();
         
+        Profiler.BeginSample("Cull");
         if (!Cull()) {
             return;
         }
-        Setup();
-        DrawGBuffer();
-        DeferredLit();
+        Profiler.EndSample();
         
+        Profiler.BeginSample("Setup");
+        Setup();
+        Profiler.EndSample();
+        
+        Profiler.BeginSample("DrawGBuffer");
+        DrawGBuffer();
+        Profiler.EndSample();
+        
+        Profiler.BeginSample("DeferredLit");
+        DeferredLit();
+        Profiler.EndSample();
+        
+        Profiler.BeginSample("DrawSkyBox");
         DrawSkyBox();
+        Profiler.EndSample();
+        
+        Profiler.BeginSample("FinalBlit");
         FinalBlit();
+        Profiler.EndSample();
+        
+        Profiler.BeginSample("Submit");
         Submit();
+        Profiler.EndSample();
     }
 
     private void FinalBlit()
@@ -147,10 +172,12 @@ public partial class CameraRenderer
 
         //绘制完后切换rendertarget
         buffer.SetRenderTarget(_cameraColorAttachment, _cameraDepthAttachment);
-
+        
+        Profiler.BeginSample("GBufferTest");
         //设为全局texture（绘制前设置也能有效，但是保险起见还是绘制后设置。
         for (int i = 0; i < 4; i++)
             buffer.SetGlobalTexture("_GT" + i, GbufferNameIds[i]);
+        Profiler.EndSample();
         ExecuteBuffer();
     }
 
