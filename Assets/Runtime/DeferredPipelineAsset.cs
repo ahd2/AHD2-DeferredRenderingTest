@@ -9,6 +9,7 @@ namespace DefferedPipeline
         bool UseSRPBatcher = true;
         protected override RenderPipeline CreatePipeline()
         {
+            Debug.Log("创建pipeline");
             return new DeferredPipeline(UseSRPBatcher);
         }
     }
