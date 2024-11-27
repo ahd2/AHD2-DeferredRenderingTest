@@ -13,7 +13,7 @@ namespace DefferedPipeline
         }
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
-            //using var profScope = new ProfilingScope(null, ProfilingSampler.Get(URPProfileId.UniversalRenderTotal));
+            using var profScope = new ProfilingScope(null, ProfilingSampler.Get(URPProfileId.UniversalRenderTotal));
             for (int i = 0; i < cameras.Length; i++) {
                 _pipelineAsset.renderer.Render(ref context, ref cameras[i]);
             }
