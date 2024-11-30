@@ -45,14 +45,7 @@ namespace DefferedPipeline
         private static int _cameraDepthAttachmentId = Shader.PropertyToID("CameraDepthAttachment");
         private RenderTargetIdentifier _cameraColorAttachment = new RenderTargetIdentifier(_cameraColorAttachmentId);
         private RenderTargetIdentifier _cameraDepthAttachment = new RenderTargetIdentifier(_cameraDepthAttachmentId);
-
-        //==============================================Gbuffer相关
-
-
-        const string GbufferPass = "GbufferPass";
-        const string DeferredPass = "DeferredPass";
-        const string FinalBlitPass = "FinalBlitPass";
-
+        
         //==============================================
         List<RenderPass> m_ActiveRenderPassQueue = new List<RenderPass>(32);
 
@@ -92,14 +85,6 @@ namespace DefferedPipeline
 
             //执行各个Pass的Execute部分
             Execute();
-
-            //DrawGBuffer();
-
-            DeferredLit();
-
-            DrawSkyBox();
-
-            FinalBlit();
 
             //调用各个Pass的OnCameraCleanup方法
             FinishRendering();
@@ -149,23 +134,6 @@ namespace DefferedPipeline
             CommandBufferPool.Release(cmd);
         }
 
-        private void FinalBlit()
-        {
-            var cmd = CommandBufferPool.Get();
-            using (new ProfilingScope(cmd, finalBlit))
-            {
-                cmd.Blit(_cameraColorAttachment, BuiltinRenderTextureType.CameraTarget);
-            }
-
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
-        }
-
-        private void DeferredLit()
-        {
-
-        }
-
         private void Submit()
         {
             buffer.ReleaseTemporaryRT(_cameraColorAttachmentId);
@@ -175,11 +143,6 @@ namespace DefferedPipeline
             ExecuteBuffer();
             context.Submit(); 
             m_ActiveRenderPassQueue.Clear();//每帧清空，不然越攒越多，也可以考虑不要每帧配置pass，而是一开始只配置一遍
-        }
-
-        private void DrawSkyBox()
-        {
-            context.DrawSkybox(camera);
         }
 
         private void Setup()
@@ -217,6 +180,10 @@ namespace DefferedPipeline
             //初始化并添加pass
             GbufferPass gbufferPass = new GbufferPass();
             m_ActiveRenderPassQueue.Add(gbufferPass);
+            DrawSkyboxPass drawSkyboxPass = new DrawSkyboxPass();
+            m_ActiveRenderPassQueue.Add(drawSkyboxPass);
+            FinalBlitPass finalBlitPass = new FinalBlitPass();
+            m_ActiveRenderPassQueue.Add(finalBlitPass);
         }
 
         private void InitializeRenderingData()

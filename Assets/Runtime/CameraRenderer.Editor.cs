@@ -19,8 +19,5 @@ namespace DefferedPipeline
         public static readonly ProfilingSampler finishRendering = new ProfilingSampler($"{bufferName}.{nameof(FinishRendering)}");
 
         //pass部分
-        
-
-        public static readonly ProfilingSampler finalBlit = new ProfilingSampler($"{bufferName}.{nameof(FinalBlit)}");
     }
 }
