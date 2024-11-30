@@ -173,7 +173,8 @@ namespace DefferedPipeline
             buffer.EndSample(SampleName);
             //Debug.Log("EndSample名字是："+bufferName + "而实际buffername是：" + buffer.name);
             ExecuteBuffer();
-            context.Submit();
+            context.Submit(); 
+            m_ActiveRenderPassQueue.Clear();//每帧清空，不然越攒越多，也可以考虑不要每帧配置pass，而是一开始只配置一遍
         }
 
         private void DrawSkyBox()
@@ -215,7 +216,7 @@ namespace DefferedPipeline
             InitializeRenderingData();
             //初始化并添加pass
             GbufferPass gbufferPass = new GbufferPass();
-            //m_ActiveRenderPassQueue.Add(gbufferPass);
+            m_ActiveRenderPassQueue.Add(gbufferPass);
         }
 
         private void InitializeRenderingData()
