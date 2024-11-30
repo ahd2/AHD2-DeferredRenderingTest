@@ -14,10 +14,12 @@ namespace DefferedPipeline
         //非pass部分
         public static readonly ProfilingSampler setup = new ProfilingSampler($"{bufferName}.{nameof(Setup)}");
         public static readonly ProfilingSampler submit = new ProfilingSampler($"{bufferName}.{nameof(Submit)}");
+        public static readonly ProfilingSampler execute = new ProfilingSampler($"{bufferName}.{nameof(Execute)}");
+        public static readonly ProfilingSampler startRendering = new ProfilingSampler($"{bufferName}.{nameof(StartRendering)}");
+        public static readonly ProfilingSampler finishRendering = new ProfilingSampler($"{bufferName}.{nameof(FinishRendering)}");
 
         //pass部分
-        public static readonly ProfilingSampler drawGbuffer =
-            new ProfilingSampler($"{bufferName}.{nameof(DrawGBuffer)}");
+        
 
         public static readonly ProfilingSampler finalBlit = new ProfilingSampler($"{bufferName}.{nameof(FinalBlit)}");
     }

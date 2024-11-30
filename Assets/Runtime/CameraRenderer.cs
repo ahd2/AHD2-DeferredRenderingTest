@@ -15,6 +15,7 @@ namespace DefferedPipeline
         ScriptableRenderContext context;
         private Camera camera;
         CullingResults cullingResults; //全局使用
+        RenderingData renderingData;//全局使用
 
         //==============================================
 
@@ -47,35 +48,13 @@ namespace DefferedPipeline
 
         //==============================================Gbuffer相关
 
-        static ShaderTagId GbufferShaderTagId = new ShaderTagId("Gbuffer");
-
-        static int[] GbufferNameIds = new int[]
-        {
-            Shader.PropertyToID("Gbuffer0"),
-            Shader.PropertyToID("Gbuffer1"),
-            Shader.PropertyToID("Gbuffer2"),
-            Shader.PropertyToID("Gbuffer3"),
-        };
-
-        //这样其实是不安全的，如果GbufferIds在GbufferNameIds之前初始化，那么就会有错误了。但是据说C#中是按顺序初始化的
-        static RenderTargetIdentifier[] GbufferIds = new RenderTargetIdentifier[]
-        {
-            new RenderTargetIdentifier(GbufferNameIds[0]),
-            new RenderTargetIdentifier(GbufferNameIds[1]),
-            new RenderTargetIdentifier(GbufferNameIds[2]),
-            new RenderTargetIdentifier(GbufferNameIds[3])
-        };
-
-        static int DepthId = Shader.PropertyToID("GbufferDepth");
 
         const string GbufferPass = "GbufferPass";
         const string DeferredPass = "DeferredPass";
         const string FinalBlitPass = "FinalBlitPass";
 
-        // 创建纹理
-
-
         //==============================================
+        List<RenderPass> m_ActiveRenderPassQueue = new List<RenderPass>(32);
 
         public CameraRenderer()
         {
@@ -109,12 +88,12 @@ namespace DefferedPipeline
             }
 
             //调用各个Pass的OnCameraSetup方法
-            //StartRendering
+            StartRendering();
 
             //执行各个Pass的Execute部分
-            //Execute
+            Execute();
 
-            DrawGBuffer();
+            //DrawGBuffer();
 
             DeferredLit();
 
@@ -123,12 +102,51 @@ namespace DefferedPipeline
             FinalBlit();
 
             //调用各个Pass的OnCameraCleanup方法
-            //FinishRendering
+            FinishRendering();
 
             using (new ProfilingScope(null, submit))
             {
                 Submit();
             }
+        }
+        
+        private void StartRendering()
+        {
+            var cmd = CommandBufferPool.Get();
+            using (new ProfilingScope(null, startRendering))
+            {
+                for (int i = 0; i < m_ActiveRenderPassQueue.Count; i++)
+                {
+                    m_ActiveRenderPassQueue[i].OnCameraSetup(cmd);
+                }
+            }
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+        }
+
+        private void Execute()
+        {
+            using (new ProfilingScope(null, execute))
+            {
+                for (int i = 0; i < m_ActiveRenderPassQueue.Count; i++)
+                {
+                    m_ActiveRenderPassQueue[i].Execute(context, renderingData);
+                }
+            }
+        }
+        
+        private void FinishRendering()
+        {
+            var cmd = CommandBufferPool.Get();
+            using (new ProfilingScope(null, finishRendering))
+            {
+                for (int i = 0; i < m_ActiveRenderPassQueue.Count; i++)
+                {
+                    m_ActiveRenderPassQueue[i].OnCameraCleanup(cmd);
+                }
+            }
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
         }
 
         private void FinalBlit()
@@ -148,57 +166,8 @@ namespace DefferedPipeline
 
         }
 
-        private void DrawGBuffer()
-        {
-            RenderTextureDescriptor gbufferdesc =
-                new RenderTextureDescriptor(camera.scaledPixelWidth, camera.scaledPixelHeight);
-            gbufferdesc.depthBufferBits = 0; //确保没有深度buffer
-            gbufferdesc.stencilFormat = GraphicsFormat.None; //模板缓冲区不指定格式
-            gbufferdesc.graphicsFormat = QualitySettings.activeColorSpace == ColorSpace.Linear
-                ? GraphicsFormat.R8G8B8A8_SRGB
-                : GraphicsFormat.R8G8B8A8_UNorm; //根据颜色空间来决定diffusebuffer的RT格式
-            buffer.GetTemporaryRT(GbufferNameIds[0], gbufferdesc); //Albedo
-            gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-            buffer.GetTemporaryRT(GbufferNameIds[1], gbufferdesc); //normal+roughness
-            gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-            buffer.GetTemporaryRT(GbufferNameIds[2], gbufferdesc); //metal+AO+？+？
-            gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-            buffer.GetTemporaryRT(GbufferNameIds[3], gbufferdesc); //暂时不懂干啥了
-
-            buffer.SetRenderTarget(GbufferIds, _cameraDepthAttachment);
-            ExecuteBuffer();
-
-            var sortingSettings = new SortingSettings(camera)
-            {
-                //调整绘制顺序,按不透明顺序（从近往远）
-                criteria = SortingCriteria.CommonOpaque
-            };
-            var drawingSettings = new DrawingSettings(GbufferShaderTagId, sortingSettings);
-            drawingSettings.SetShaderPassName(1, GbufferShaderTagId); //绘制光照着色器
-            var filteringSettings = new FilteringSettings(RenderQueueRange.opaque); //渲染不透明队列的物体。
-            //核心绘制函数
-            context.DrawRenderers(
-                cullingResults, ref drawingSettings, ref filteringSettings
-            );
-
-            //绘制完后切换rendertarget
-            buffer.SetRenderTarget(_cameraColorAttachment, _cameraDepthAttachment);
-
-            Profiler.BeginSample("GBufferTest");
-            //设为全局texture（绘制前设置也能有效，但是保险起见还是绘制后设置。
-            for (int i = 0; i < 4; i++)
-                buffer.SetGlobalTexture("_GT" + i, GbufferNameIds[i]);
-            Profiler.EndSample();
-            ExecuteBuffer();
-        }
-
         private void Submit()
         {
-            buffer.ReleaseTemporaryRT(GbufferNameIds[0]);
-            buffer.ReleaseTemporaryRT(GbufferNameIds[1]);
-            buffer.ReleaseTemporaryRT(GbufferNameIds[2]);
-            buffer.ReleaseTemporaryRT(GbufferNameIds[3]);
-            buffer.ReleaseTemporaryRT(DepthId);
             buffer.ReleaseTemporaryRT(_cameraColorAttachmentId);
             buffer.ReleaseTemporaryRT(_cameraDepthAttachmentId);
             buffer.EndSample(SampleName);
@@ -241,6 +210,21 @@ namespace DefferedPipeline
 
             //Debug.Log("BeginSample名字是："+bufferName + "而实际buffername是：" + buffer.name);
             ExecuteBuffer();
+            
+            //配置RenderingData（模仿URP
+            InitializeRenderingData();
+            //初始化并添加pass
+            GbufferPass gbufferPass = new GbufferPass();
+            //m_ActiveRenderPassQueue.Add(gbufferPass);
+        }
+
+        private void InitializeRenderingData()
+        {
+            //后续应该取消camera，cullingResults这些的全局变量，只保留RenderingData
+            renderingData.camera = camera;
+            renderingData.cullingResults = cullingResults;
+            renderingData.cameraColorAttachment = _cameraColorAttachment;
+            renderingData.cameraDepthAttachment = _cameraDepthAttachment;
         }
 
         void ExecuteBuffer()

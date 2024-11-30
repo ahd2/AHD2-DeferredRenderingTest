@@ -66,5 +66,16 @@ namespace DefferedPipeline
             FinalBlit
         }
     }
+    
+    /// <summary>
+    /// 渲染信息，由pipeline传给pass用的
+    /// </summary>
+    public struct RenderingData
+    {
+        public Camera camera;
+        public CullingResults cullingResults;
+        public RenderTargetIdentifier cameraColorAttachment;//颜色buffer
+        public RenderTargetIdentifier cameraDepthAttachment;//深度buffer
+    }
 }
 
