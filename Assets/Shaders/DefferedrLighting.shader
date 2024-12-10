@@ -8,38 +8,31 @@ Shader "DefferedrLighting"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" "LightMode" = "Gbuffer"}
-        LOD 100
-
+        Tags { }
+        ZWrite Off
         Pass
         {
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             #include "..\ShaderLibrary\Common.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 
             struct appdata
             {
                 float4 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
-                float3 normalOS : NORMAL;
-                float3 tangentOS : TANGENT;
             };
 
             struct v2f
             {
                 float2 uv : TEXCOORD0;
                 float4 positionCS : SV_POSITION;
-                float3 positionWS : TEXCOORD1;
-                float3 normalWS  : TEXCOORD2;
-                float3 tangentWS  : TEXCOORD3;
-                float3 bitangentWS  : TEXCOORD4;
             };
 
-            TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
+            TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);//等于GT0
             TEXTURE2D(_GT1);
             TEXTURE2D(_GT2);
+            TEXTURE2D(_GT3);
             
             CBUFFER_START(UnityPerMaterial)
             float4 _MainTex_ST;
@@ -49,22 +42,15 @@ Shader "DefferedrLighting"
             {
                 v2f o;
                 o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
-                o.tangentWS = TransformObjectToWorldDir(v.tangentOS);
-                o.normalWS = TransformObjectToWorldNormal(v.normalOS);//向量记得在片元归一化
-                o.bitangentWS = cross(o.normalWS, o.tangentWS);
-                o.positionWS = TransformObjectToWorld(v.positionOS.xyz);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
             }
 
             half4 frag (v2f i) : SV_TARGET
             {
-                i.normalWS = normalize(i.normalWS);
-                i.tangentWS = normalize(i.tangentWS);
-                i.bitangentWS = normalize(i.bitangentWS);
-                half4 Albedo = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
-                half4 a = SAMPLE_TEXTURE2D(_GT1, sampler_MainTex, i.uv);
-                return Albedo * a;
+                half4 albedo = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
+                half3 normal = SAMPLE_TEXTURE2D(_GT1, sampler_MainTex, i.uv).xyz * 2 - 1;
+                return albedo;
             }
             ENDHLSL
         }

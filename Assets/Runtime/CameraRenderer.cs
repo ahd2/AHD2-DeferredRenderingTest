@@ -180,6 +180,8 @@ namespace DefferedPipeline
             //初始化并添加pass
             GbufferPass gbufferPass = new GbufferPass();
             m_ActiveRenderPassQueue.Add(gbufferPass);
+            DeferredLitPass deferredLitPass = new DeferredLitPass();
+            m_ActiveRenderPassQueue.Add(deferredLitPass);
             DrawSkyboxPass drawSkyboxPass = new DrawSkyboxPass();
             m_ActiveRenderPassQueue.Add(drawSkyboxPass);
             FinalBlitPass finalBlitPass = new FinalBlitPass();

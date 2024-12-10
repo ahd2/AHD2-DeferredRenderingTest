@@ -20,7 +20,7 @@ namespace DefferedPipeline
         };
 
         //这样其实是不安全的，如果GbufferIds在GbufferNameIds之前初始化，那么就会有错误了。但是据说C#中是按顺序初始化的
-        static RenderTargetIdentifier[] GbufferIds = new RenderTargetIdentifier[]
+        public static RenderTargetIdentifier[] GbufferIds = new RenderTargetIdentifier[]
         {
             new RenderTargetIdentifier(GbufferNameIds[0]),
             new RenderTargetIdentifier(GbufferNameIds[1]),
@@ -59,7 +59,7 @@ namespace DefferedPipeline
                     : GraphicsFormat.R8G8B8A8_UNorm; //根据颜色空间来决定diffusebuffer的RT格式
                 cmd.GetTemporaryRT(GbufferNameIds[0], gbufferdesc); //Albedo
                 gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-                cmd.GetTemporaryRT(GbufferNameIds[1], gbufferdesc); //normal+roughness
+                cmd.GetTemporaryRT(GbufferNameIds[1], gbufferdesc); //normal
                 gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
                 cmd.GetTemporaryRT(GbufferNameIds[2], gbufferdesc); //metal+AO+？+？
                 gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
@@ -81,9 +81,6 @@ namespace DefferedPipeline
                 context.DrawRenderers(
                     renderingData.cullingResults, ref drawingSettings, ref filteringSettings
                 );
-
-                //绘制完后切换rendertarget
-                cmd.SetRenderTarget(renderingData.cameraColorAttachment, renderingData.cameraDepthAttachment);
 
                 //设为全局texture（绘制前设置也能有效，但是保险起见还是绘制后设置。
                 for (int i = 0; i < 4; i++)
