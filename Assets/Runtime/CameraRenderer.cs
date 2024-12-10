@@ -151,11 +151,21 @@ namespace DefferedPipeline
             context.SetupCameraProperties(camera);
             //设置自己维护的RenderTarget
             //深度buffer其实可以不设为0然后就用这一个作为RenderTarget
-            buffer.GetTemporaryRT(_cameraColorAttachmentId, camera.scaledPixelWidth, camera.scaledPixelHeight, 0,
-                FilterMode.Point,
-                QualitySettings.activeColorSpace == ColorSpace.Linear
-                    ? GraphicsFormat.R8G8B8A8_SRGB
-                    : GraphicsFormat.R8G8B8A8_UNorm);
+            //目前只考虑相机HDR，（本来应该还要拿管线asset里面的HDR是否启用来判断的，但是要改很多，先只用相机吧）
+            if (camera.allowHDR)
+            {
+                buffer.GetTemporaryRT(_cameraColorAttachmentId, camera.scaledPixelWidth, camera.scaledPixelHeight, 0,
+                    FilterMode.Point,
+                    GraphicsFormat.B10G11R11_UFloatPack32);
+            }
+            else
+            {
+                buffer.GetTemporaryRT(_cameraColorAttachmentId, camera.scaledPixelWidth, camera.scaledPixelHeight, 0,
+                    FilterMode.Point,
+                    QualitySettings.activeColorSpace == ColorSpace.Linear
+                        ? GraphicsFormat.R8G8B8A8_SRGB
+                        : GraphicsFormat.R8G8B8A8_UNorm);
+            }
             buffer.GetTemporaryRT(_cameraDepthAttachmentId, camera.scaledPixelWidth, camera.scaledPixelHeight, 32,
                 FilterMode.Point,
                 RenderTextureFormat.Depth, RenderTextureReadWrite.Linear);

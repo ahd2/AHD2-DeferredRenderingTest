@@ -8,6 +8,8 @@ namespace DefferedPipeline
     {
         public bool UseSRPBatcher = true;
         public CameraRenderer renderer;//用renderer来管理一整个渲染管线
+        [SerializeField]
+        //bool allowHDR = true;
         protected override RenderPipeline CreatePipeline()
         {
             Debug.Log("创建pipeline");
