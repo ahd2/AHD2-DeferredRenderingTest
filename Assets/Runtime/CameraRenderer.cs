@@ -149,6 +149,12 @@ namespace DefferedPipeline
         {
             //更新相机属性,顺便传framebuffer地址，方便ClearRenderTarget清理屏幕。
             context.SetupCameraProperties(camera);
+#if UNITY_EDITOR
+            if (camera.cameraType == CameraType.Preview)
+            {
+                camera.backgroundColor = CoreRenderPipelinePreferences.previewBackgroundColor;
+            }
+#endif
             //设置自己维护的RenderTarget
             //深度buffer其实可以不设为0然后就用这一个作为RenderTarget
             //目前只考虑相机HDR，（本来应该还要拿管线asset里面的HDR是否启用来判断的，但是要改很多，先只用相机吧）
@@ -196,11 +202,6 @@ namespace DefferedPipeline
             m_ActiveRenderPassQueue.Add(drawSkyboxPass);
             FinalBlitPass finalBlitPass = new FinalBlitPass();
             m_ActiveRenderPassQueue.Add(finalBlitPass);
-            
-            SphericalHarmonicsL2 ambientSH = RenderSettings.ambientProbe;
-            Color linearGlossyEnvColor = new Color(ambientSH[0, 0], ambientSH[1, 0], ambientSH[2, 0]) * RenderSettings.reflectionIntensity;
-            Color glossyEnvColor = CoreUtils.ConvertLinearToActiveColorSpace(linearGlossyEnvColor);
-            Shader.SetGlobalVector("glossyEnvironmentColor", glossyEnvColor);
         }
 
         private void InitializeRenderingData()

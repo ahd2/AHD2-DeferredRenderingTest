@@ -27,7 +27,7 @@ namespace DefferedPipeline
             var cmd = CommandBufferPool.Get();
             using (new ProfilingScope(cmd, deferredLit))
             {
-                cmd.Blit(GbufferPass.GbufferIds[0], renderingData.cameraColorAttachment, _deferredLitMat);
+                cmd.Blit(GbufferPass.GbufferIds[0], renderingData.cameraColorAttachment, _deferredLitMat, 0);
                 //绘制完后切换rendertarget
                 cmd.SetRenderTarget(renderingData.cameraColorAttachment, renderingData.cameraDepthAttachment);
             }
