@@ -33,6 +33,8 @@ Shader "DefferedrLighting"
             TEXTURE2D(_GT1);
             TEXTURE2D(_GT2);
             TEXTURE2D(_GT3);
+            half3 _WorldSpaceLightPos0;
+            half3 glossyEnvironmentColor;
             
             CBUFFER_START(UnityPerMaterial)
             float4 _MainTex_ST;
@@ -50,7 +52,9 @@ Shader "DefferedrLighting"
             {
                 half4 albedo = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
                 half3 normal = SAMPLE_TEXTURE2D(_GT1, sampler_MainTex, i.uv).xyz * 2 - 1;
-                return albedo;
+                half3 lightDir = _WorldSpaceLightPos0;
+                half NoL = max(0, dot(lightDir, normal));
+                return albedo * NoL;
             }
             ENDHLSL
         }

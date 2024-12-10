@@ -186,6 +186,11 @@ namespace DefferedPipeline
             m_ActiveRenderPassQueue.Add(drawSkyboxPass);
             FinalBlitPass finalBlitPass = new FinalBlitPass();
             m_ActiveRenderPassQueue.Add(finalBlitPass);
+            
+            SphericalHarmonicsL2 ambientSH = RenderSettings.ambientProbe;
+            Color linearGlossyEnvColor = new Color(ambientSH[0, 0], ambientSH[1, 0], ambientSH[2, 0]) * RenderSettings.reflectionIntensity;
+            Color glossyEnvColor = CoreUtils.ConvertLinearToActiveColorSpace(linearGlossyEnvColor);
+            Shader.SetGlobalVector("glossyEnvironmentColor", glossyEnvColor);
         }
 
         private void InitializeRenderingData()
