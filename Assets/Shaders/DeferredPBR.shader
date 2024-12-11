@@ -13,6 +13,7 @@ Shader "DefferedrPBR"
 
         Pass
         {
+            Cull Off
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag

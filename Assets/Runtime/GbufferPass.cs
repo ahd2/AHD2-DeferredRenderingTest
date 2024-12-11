@@ -85,6 +85,8 @@ namespace DefferedPipeline
                 //设为全局texture（绘制前设置也能有效，但是保险起见还是绘制后设置。
                 for (int i = 0; i < 4; i++)
                     cmd.SetGlobalTexture("_GT" + i, GbufferNameIds[i]);
+                //这样设置其实不安全，合理办法应该blit一个深度tex
+                cmd.SetGlobalTexture("_DepthTex", renderingData.cameraDepthAttachment);
             }
 
             context.ExecuteCommandBuffer(cmd);
