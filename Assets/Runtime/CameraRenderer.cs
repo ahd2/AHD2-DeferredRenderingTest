@@ -200,6 +200,8 @@ namespace DefferedPipeline
             m_ActiveRenderPassQueue.Add(deferredLitPass);
             DrawSkyboxPass drawSkyboxPass = new DrawSkyboxPass();
             m_ActiveRenderPassQueue.Add(drawSkyboxPass);
+            DrawTransparentPass transparentPass = new DrawTransparentPass();
+            m_ActiveRenderPassQueue.Add((transparentPass));
             FinalBlitPass finalBlitPass = new FinalBlitPass();
             m_ActiveRenderPassQueue.Add(finalBlitPass);
         }
