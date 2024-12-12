@@ -1,5 +1,6 @@
 #ifndef GBUFFER_PASS_INCLUDED
 #define GBUFFER_PASS_INCLUDED
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
 struct appdata
 {
     float4 positionOS : POSITION;
@@ -16,6 +17,7 @@ struct v2f
     float3 normalWS  : TEXCOORD2;
     float3 tangentWS  : TEXCOORD3;
     float3 bitangentWS  : TEXCOORD4;
+    float3 vertexSH : TEXCOORD5;
 };
 
 struct output
@@ -26,6 +28,22 @@ struct output
     half4 GT3 : SV_Target3;
 };
 
+// Samples SH L0, L1 and L2 terms
+half3 SampleSH(half3 normalWS)
+{
+    // LPPV is not supported in Ligthweight Pipeline
+    real4 SHCoefficients[7];
+    SHCoefficients[0] = unity_SHAr;
+    SHCoefficients[1] = unity_SHAg;
+    SHCoefficients[2] = unity_SHAb;
+    SHCoefficients[3] = unity_SHBr;
+    SHCoefficients[4] = unity_SHBg;
+    SHCoefficients[5] = unity_SHBb;
+    SHCoefficients[6] = unity_SHC;
+
+    return max(half3(0, 0, 0), SampleSH9(SHCoefficients, normalWS));
+}
+
 v2f vert (appdata v)
 {
     v2f o;
@@ -34,16 +52,9 @@ v2f vert (appdata v)
     o.normalWS = TransformObjectToWorldNormal(v.normalOS);//向量记得在片元归一化
     o.bitangentWS = cross(o.normalWS, o.tangentWS);
     o.positionWS = TransformObjectToWorld(v.positionOS.xyz);
+    o.vertexSH = SampleSH(o.normalWS);
     o.uv = TRANSFORM_TEX(v.uv, _MainTex);
     return o;
-}
-real3 DecodeHDREnvironment(real4 encodedIrradiance, real4 decodeInstructions)
-{
-    // Take into account texture alpha if decodeInstructions.w is true(the alpha value affects the RGB channels)
-    real alpha = max(decodeInstructions.w * (encodedIrradiance.a - 1.0) + 1.0, 0.0);
-
-    // If Linear mode is not supported we can skip exponent part
-    return (decodeInstructions.x * PositivePow(alpha, decodeInstructions.y)) * encodedIrradiance.rgb;
 }
 
 output frag (v2f i)
@@ -69,7 +80,7 @@ output frag (v2f i)
     output.GT0 = Albedo;
     output.GT1 = half4(normalWS * 0.5 + 0.5, 1); //
     output.GT2 = MAODSMap; //Metallic/AO/DetailMap/Smothness
-    output.GT3 = half4(environment, 1);
+    output.GT3 = half4(i.vertexSH, 1);
     return output;
 }
 #endif
