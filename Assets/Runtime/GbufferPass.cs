@@ -61,10 +61,10 @@ namespace DefferedPipeline
                 gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
                 cmd.GetTemporaryRT(GbufferNameIds[1], gbufferdesc); //normal
                 gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-                cmd.GetTemporaryRT(GbufferNameIds[2], gbufferdesc); //metal+AO+？+？
-                gbufferdesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-                cmd.GetTemporaryRT(GbufferNameIds[3], gbufferdesc); //暂时不懂干啥了
-
+                cmd.GetTemporaryRT(GbufferNameIds[2], gbufferdesc); //Metallic/AO/DetailMap/Smothness
+                gbufferdesc.graphicsFormat = GraphicsFormat.B10G11R11_UFloatPack32;
+                cmd.GetTemporaryRT(GbufferNameIds[3], gbufferdesc); //HDRGI
+                //Gbuffer布局以这里为准
                 cmd.SetRenderTarget(GbufferIds, renderingData.cameraDepthAttachment);
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();//提交完记得清空
@@ -77,6 +77,10 @@ namespace DefferedPipeline
                 var drawingSettings = new DrawingSettings(GbufferShaderTagId, sortingSettings);
                 drawingSettings.SetShaderPassName(1, GbufferShaderTagId); //绘制光照着色器
                 var filteringSettings = new FilteringSettings(RenderQueueRange.opaque); //渲染不透明队列的物体。
+                drawingSettings.perObjectData = PerObjectData.Lightmaps | PerObjectData.LightProbe |
+                                                PerObjectData.OcclusionProbe | PerObjectData.LightProbeProxyVolume |
+                                                PerObjectData.ShadowMask | PerObjectData.OcclusionProbeProxyVolume
+                                                | PerObjectData.ReflectionProbes;
                 //核心绘制函数
                 context.DrawRenderers(
                     renderingData.cullingResults, ref drawingSettings, ref filteringSettings

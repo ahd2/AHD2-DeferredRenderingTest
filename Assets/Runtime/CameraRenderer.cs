@@ -196,6 +196,8 @@ namespace DefferedPipeline
             //设置矩阵(这个不能紧跟在SetupCameraProperties后面，不然就会出错，why？)
             Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
             Matrix4x4 projMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);
+            // Debug.Log(projMatrix);
+            // Debug.Log(camera.projectionMatrix);
             SetViewAndProjectionMatrices(buffer, viewMatrix, projMatrix, true);
             //初始化并添加pass
             GbufferPass gbufferPass = new GbufferPass();
@@ -238,9 +240,9 @@ namespace DefferedPipeline
         public static void SetViewAndProjectionMatrices(CommandBuffer cmd, Matrix4x4 viewMatrix, Matrix4x4 projectionMatrix, bool setInverseMatrices)
         {
             Matrix4x4 viewAndProjectionMatrix = projectionMatrix * viewMatrix;
-            cmd.SetGlobalMatrix(ShaderPropertyId.viewMatrix, viewMatrix);
-            cmd.SetGlobalMatrix(ShaderPropertyId.projectionMatrix, projectionMatrix);
-            cmd.SetGlobalMatrix(ShaderPropertyId.viewAndProjectionMatrix, viewAndProjectionMatrix);
+            // cmd.SetGlobalMatrix(ShaderPropertyId.viewMatrix, viewMatrix);
+            // cmd.SetGlobalMatrix(ShaderPropertyId.projectionMatrix, projectionMatrix);
+            // cmd.SetGlobalMatrix(ShaderPropertyId.viewAndProjectionMatrix, viewAndProjectionMatrix);
             
 
             if (setInverseMatrices)

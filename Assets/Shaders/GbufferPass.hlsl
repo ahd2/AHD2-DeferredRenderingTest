@@ -37,6 +37,14 @@ v2f vert (appdata v)
     o.uv = TRANSFORM_TEX(v.uv, _MainTex);
     return o;
 }
+real3 DecodeHDREnvironment(real4 encodedIrradiance, real4 decodeInstructions)
+{
+    // Take into account texture alpha if decodeInstructions.w is true(the alpha value affects the RGB channels)
+    real alpha = max(decodeInstructions.w * (encodedIrradiance.a - 1.0) + 1.0, 0.0);
+
+    // If Linear mode is not supported we can skip exponent part
+    return (decodeInstructions.x * PositivePow(alpha, decodeInstructions.y)) * encodedIrradiance.rgb;
+}
 
 output frag (v2f i)
 {
@@ -52,12 +60,16 @@ output frag (v2f i)
     half3 normalWS = TransformTangentToWorld(NormalMap.xyz, TBN);
     
     half4 MAODSMap = SAMPLE_TEXTURE2D(_MetallicGlossMap, sampler_MainTex, i.uv);
+
+    half3 viewDirWS = normalize(_WorldSpaceCameraPos.xyz - i.positionWS.xyz);
+    half3 reflectDirWS = reflect( -viewDirWS, normalWS);
+    half3 environment = DecodeHDREnvironment(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectDirWS, 0.0), unity_SpecCube0_HDR);
     //Gbuffer输出
     output output;
     output.GT0 = Albedo;
     output.GT1 = half4(normalWS * 0.5 + 0.5, 1); //
     output.GT2 = MAODSMap; //Metallic/AO/DetailMap/Smothness
-    output.GT3 = 0.1;
+    output.GT3 = half4(environment, 1);
     return output;
 }
 #endif

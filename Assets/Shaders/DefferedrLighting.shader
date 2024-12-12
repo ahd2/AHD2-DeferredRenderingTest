@@ -3,8 +3,6 @@ Shader "DefferedrLighting"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _BumpMap("Normap Map", 2D) = "bump" {}
-        _MetallicGlossMap("Metallic/AO/D/Smothness", 2D) = "" { }
     }
     SubShader
     {
@@ -15,6 +13,7 @@ Shader "DefferedrLighting"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma target 3.5
             #include "..\ShaderLibrary\Common.hlsl"
 
             struct appdata
@@ -30,12 +29,11 @@ Shader "DefferedrLighting"
             };
 
             TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);//等于GT0
-            TEXTURE2D(_GT1);
+            TEXTURE2D(_GT1); SAMPLER(sampler_GT1);
             TEXTURE2D(_GT2);
             TEXTURE2D(_GT3);
             TEXTURE2D(_DepthTex);   SAMPLER(sampler_DepthTex);
-            //环境光贴图（默认是Skybox）
-            TEXTURECUBE(unity_SpecCube0);   SAMPLER(samplerunity_SpecCube0);
+            
             half3 _WorldSpaceLightPos0;
             half3 glossyEnvironmentColor;
             float4x4 unity_MatrixInvVP;
@@ -68,12 +66,16 @@ Shader "DefferedrLighting"
                 float4 worldPos = mul(unity_MatrixInvVP, ndcPos);
                 worldPos /= worldPos.w;
                 
-                half3 normal = SAMPLE_TEXTURE2D(_GT1, sampler_MainTex, i.uv).xyz * 2 - 1;
+                half3 normalWS = SAMPLE_TEXTURE2D(_GT1, sampler_GT1, i.uv).xyz * 2 - 1;
+                half3 env = SAMPLE_TEXTURE2D(_GT3, sampler_MainTex, i.uv).xyz;
                 half3 lightDir = _WorldSpaceLightPos0;
-                half NoL = max(0, dot(lightDir, normal));
+                half NoL = max(0, dot(lightDir, normalWS));
+
+	            
                 //return half4(depth,0, 0, 0);
-                return half4(worldPos);
-                return albedo * NoL;
+                //return half4(worldPos);
+                albedo.xyz = env;
+                return albedo;
             }
             ENDHLSL
         }

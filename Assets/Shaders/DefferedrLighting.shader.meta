@@ -4,8 +4,6 @@ ShaderImporter:
   externalObjects: {}
   defaultTextures:
   - _MainTex: {instanceID: 0}
-  - _BumpMap: {instanceID: 0}
-  - _MetallicGlossMap: {instanceID: 0}
   nonModifiableTextures: []
   preprocessorOverride: 0
   userData: 
