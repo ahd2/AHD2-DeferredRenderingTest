@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -14,6 +15,7 @@ namespace DefferedPipeline
         {
             Debug.Log("创建pipeline");
             renderer = new CameraRenderer();
+            renderer.iblBrdfLutTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/IBL_BRDF_LUT.png");
             return new DeferredPipeline(this);
         }
     }

@@ -13,14 +13,4 @@ CBUFFER_START(UnityPerMaterial)
 float4 _MainTex_ST;
 CBUFFER_END
 
-CBUFFER_START(UnityLighting)
-// SH lighting environment
-half4 unity_SHAr;
-half4 unity_SHAg;
-half4 unity_SHAb;
-half4 unity_SHBr;
-half4 unity_SHBg;
-half4 unity_SHBb;
-half4 unity_SHC;
-CBUFFER_END
 #endif

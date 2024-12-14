@@ -1,6 +1,8 @@
 #ifndef GBUFFER_PASS_INCLUDED
 #define GBUFFER_PASS_INCLUDED
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
+#include "Assets/ShaderLibrary/BRDF.hlsl"
+#include "Assets/ShaderLibrary/Lighting.hlsl"
 struct appdata
 {
     float4 positionOS : POSITION;
@@ -74,13 +76,16 @@ output frag (v2f i)
 
     half3 viewDirWS = normalize(_WorldSpaceCameraPos.xyz - i.positionWS.xyz);
     half3 reflectDirWS = reflect( -viewDirWS, normalWS);
-    half3 environment = DecodeHDREnvironment(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectDirWS, 0.0), unity_SpecCube0_HDR);
+    half3 specular = DecodeHDREnvironment(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectDirWS, (1 - MAODSMap.a) * 7), unity_SpecCube0_HDR);
+
+    half NoV = saturate(dot(normalWS, viewDirWS));
+    half3 GI = AmbientLighting(i.vertexSH, specular, Albedo.xyz, MAODSMap, NoV);
     //Gbuffer输出
     output output;
     output.GT0 = Albedo;
     output.GT1 = half4(normalWS * 0.5 + 0.5, 1); //
     output.GT2 = MAODSMap; //Metallic/AO/DetailMap/Smothness
-    output.GT3 = half4(i.vertexSH, 1);
+    output.GT3 = half4(GI, 1);
     return output;
 }
 #endif

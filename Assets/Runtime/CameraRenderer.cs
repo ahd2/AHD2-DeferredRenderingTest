@@ -16,6 +16,8 @@ namespace DefferedPipeline
         private Camera camera;
         CullingResults cullingResults; //全局使用
         RenderingData renderingData;//全局使用
+        
+        public Texture2D iblBrdfLutTex;
 
         //==============================================
 
@@ -199,6 +201,8 @@ namespace DefferedPipeline
             // Debug.Log(projMatrix);
             // Debug.Log(camera.projectionMatrix);
             SetViewAndProjectionMatrices(buffer, viewMatrix, projMatrix, true);
+            //设置lut
+            buffer.SetGlobalTexture(ShaderPropertyId._iblBrdfLut, iblBrdfLutTex);
             //初始化并添加pass
             GbufferPass gbufferPass = new GbufferPass();
             m_ActiveRenderPassQueue.Add(gbufferPass);
@@ -257,6 +261,8 @@ namespace DefferedPipeline
         }
         internal static class ShaderPropertyId
         {
+            public static readonly int _iblBrdfLut = Shader.PropertyToID("_iblBrdfLut");
+            
             public static readonly int viewMatrix = Shader.PropertyToID("unity_MatrixV");
             public static readonly int projectionMatrix = Shader.PropertyToID("glstate_matrix_projection");
             public static readonly int viewAndProjectionMatrix = Shader.PropertyToID("unity_MatrixVP");
